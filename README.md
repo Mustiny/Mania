@@ -1,1 +1,1 @@
-Just a customizable small mania game
+A pygame game; customizable small mania game.
