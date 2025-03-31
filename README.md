@@ -1,0 +1,1 @@
+Just a customizable small mania game
