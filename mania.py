@@ -5,20 +5,22 @@ import pygame
 import os
 import configparser
 
-# default values
+
 FPS = 60
 WINDOW_W = 800
 WINDOW_H = 600
+IS_FULLSCREEN = False
 
 TEXTURE_PACK = "Default"
 
 FAILED = False
 
 FOLDER_PATH = os.path.dirname(os.path.abspath(__name__))
-CONFIG_PATH = os.path.join(FOLDER_PATH, "config.ini")
+MAIN_CONFIG_PATH = os.path.join(FOLDER_PATH, "config.ini")
+
 
 config_parser = configparser.ConfigParser()
-def init_config(path:str):
+def init_main_config(path:str):
     if not os.path.exists(path):
         print(f"Config file doesn't exists: '{path}'")
         return FAILED
@@ -27,31 +29,80 @@ def init_config(path:str):
         return FAILED
 
     config_parser.read(path)
-    if not "window" in config_parser:
-        print(f"No window class in the .ini file: '{path}'")
+    if not "Window" in config_parser:
+        print(f"No Window class in the .ini file: '{path}'")
     else:
-        FPS = config_parser["window"].getint("fps", fallback=FPS)
-        WINDOW_W = config_parser["window"].getint("width", fallback=WINDOW_W)
-        WINDOW_H = config_parser["window"].getint("height", fallback=WINDOW_H)
+        global FPS, WINDOW_W, WINDOW_H, IS_FULLSCREEN
+        FPS = config_parser["Window"].getint("fps", fallback=FPS)
+        WINDOW_W = config_parser["Window"].getint("width", fallback=WINDOW_W)
+        WINDOW_H = config_parser["Window"].getint("height", fallback=WINDOW_H)
+        IS_FULLSCREEN = config_parser["Window"].getboolean("fullscreen", fallback=IS_FULLSCREEN)
+    
+    if not "User" in config_parser:
+        print(f"No User class in the .ini file: '{path}'")
+    else:
+        global TEXTURE_PACK
+        TEXTURE_PACK = config_parser["User"].get("Skin", fallback=TEXTURE_PACK)
     
     return True
 
-if init_config(CONFIG_PATH) == FAILED:
+SKIN_PLACEMENTS = dict()
+
+def set_default_placements():
+    SKIN_PLACEMENTS["4K_start_pos_x"] = 400
+    SKIN_PLACEMENTS["4K_start_pos_y"] = 0
+    SKIN_PLACEMENTS["4K_end_pos_y"] = 700
+    SKIN_PLACEMENTS["4K_note_width"] = 100
+    SKIN_PLACEMENTS["4K_note_height"] = 70
+    SKIN_PLACEMENTS["4K_note_space"] = 50
+
+set_default_placements()
+
+def init_skin_config(path:str):
+    if not os.path.exists(path):
+        print(f"Skin config file doesn't exists: '{path}'")
+        return FAILED
+    if os.path.isdir(path):
+        print(f"Skin config file cannot be a folder! '{path}'")
+        return FAILED
+    
+    config_parser.read(path)
+    if not "Placement" in config_parser:
+        print("No Placement class in the skin config!")
+    else:
+        global SKIN_PLACEMENTS
+        SKIN_PLACEMENTS["4K_start_pos_x"] = config_parser["Placement"].getint("4K_start_pos_x",
+                                                                              fallback=SKIN_PLACEMENTS["4K_start_pos_x"])
+        SKIN_PLACEMENTS["4K_start_pos_y"] = config_parser["Placement"].getint("4K_start_pos_y",
+                                                                              fallback=SKIN_PLACEMENTS["4K_start_pos_y"])
+        SKIN_PLACEMENTS["4K_end_pos_y"] = config_parser["Placement"].getint("4K_end_pos_y",
+                                                                              fallback=SKIN_PLACEMENTS["4K_end_pos_y"])
+        SKIN_PLACEMENTS["4K_note_width"] = config_parser["Placement"].getint("4K_note_width",
+                                                                              fallback=SKIN_PLACEMENTS["4K_note_width"])
+        SKIN_PLACEMENTS["4K_note_height"] = config_parser["Placement"].getint("4K_note_height",
+                                                                              fallback=SKIN_PLACEMENTS["4K_note_height"])
+        SKIN_PLACEMENTS["4K_note_space"] = config_parser["Placement"].getint("4K_note_space",
+                                                                              fallback=SKIN_PLACEMENTS["4K_note_space"])
+
+    return True
+        
+if init_main_config(MAIN_CONFIG_PATH) == FAILED:
     exit()
     
 pygame.init()
 py_clock = pygame.time.Clock()
 
+
 class Gameplay:
     def __init__(self):
         self.is_failed = False
+        self.textures = dict()
         if not self.load_textures():
             self.is_failed = True
             return
-        
-        self.textures = dict()
 
     def load_textures(self):
+        global TEXTURE_PACK
         textures_path = os.path.join(FOLDER_PATH, "Textures", TEXTURE_PACK)
         if not os.path.exists(textures_path):
             print(f"Texture pack folder: {textures_path}', doesn't exists!")
@@ -62,7 +113,7 @@ class Gameplay:
         
         textures_list = ("Note1", "Note2", "Note3", "Note4")
         for texture in textures_list:
-            texture_path = os.path.join(texture_path, f"{texture}.png")
+            texture_path = os.path.join(textures_path, f"{texture}.png")
             if not os.path.exists(texture_path):
                 texture_path = os.path.join(FOLDER_PATH, "Textures", "Default", texture)
                 if not os.path.exists(texture_path):
@@ -83,14 +134,17 @@ class Gameplay:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return False
+                
+        return True
 
     def loop(self):
-        while game.inputs():
-            game.display()
+        while self.inputs():
+            self.display()
             # TODO update notes
             py_clock.tick(FPS)
 
-        main.loop()
+        # main.loop()
+
 
 class Main:
     def __init__(self):
@@ -99,25 +153,31 @@ class Main:
             self.is_failed = True
             return
         
-        self.loop()
+        if not init_skin_config(os.path.join(FOLDER_PATH, "Textures", TEXTURE_PACK, "config.ini")):
+            self.is_failed = True
+            return
+        
+        self.window = pygame.display.set_mode((WINDOW_W, WINDOW_H), IS_FULLSCREEN)
 
-    def load_textures():
-        pass # just copy and paste the other one
+    def load_textures(self):
+        return True # just copy and paste the other one
 
-    def display():
+    def display(self):
         pass
 
-    def inputs():
+    def inputs(self):
         pass
 
-    def loop():
+    def loop(self):
         game.loop()
+
 
 main = Main()
 if main.is_failed:
     pygame.quit()
     exit()    
 game = Gameplay()
+main.loop()
 if game.is_failed:
     pygame.quit()
     exit()
