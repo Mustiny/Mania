@@ -40,49 +40,85 @@ if init_config(CONFIG_PATH) == FAILED:
     exit()
     
 pygame.init()
+py_clock = pygame.time.Clock()
 
-textures = dict()
+class Gameplay:
+    def __init__(self):
+        self.is_failed = False
+        if not self.load_textures():
+            self.is_failed = True
+            return
+        
+        self.textures = dict()
 
-def load_textures():
-    textures_path = os.path.join(FOLDER_PATH, "Textures", TEXTURE_PACK)
-    if not os.path.exists(textures_path):
-        print(f"Texture pack folder: {textures_path}', doesn't exists!")
-        TEXTURE_PACK = "Default"
-        if not os.path.exists(os.path.join(FOLDER_PATH, "Textures", TEXTURE_PACK)):
-            print(f"Default texture pack folder doesn't exists!")
-            return FAILED
-    
-    textures_list = ("Note1", "Note2", "Note3", "Note4")
-    for texture in textures_list:
-        texture_path = os.path.join(texture_path, f"{texture}.png")
-        if not os.path.exists(texture_path):
-            texture_path = os.path.join(FOLDER_PATH, "Textures", "Default", texture)
-            if not os.path.exists(texture_path):
-                print(f"Must have texture: '{texture_path}, doesn't exists!'")
+    def load_textures(self):
+        textures_path = os.path.join(FOLDER_PATH, "Textures", TEXTURE_PACK)
+        if not os.path.exists(textures_path):
+            print(f"Texture pack folder: {textures_path}', doesn't exists!")
+            TEXTURE_PACK = "Default"
+            if not os.path.exists(os.path.join(FOLDER_PATH, "Textures", TEXTURE_PACK)):
+                print(f"Default texture pack folder doesn't exists!")
                 return FAILED
         
-        textures[texture] = pygame.image.load(texture_path)
+        textures_list = ("Note1", "Note2", "Note3", "Note4")
+        for texture in textures_list:
+            texture_path = os.path.join(texture_path, f"{texture}.png")
+            if not os.path.exists(texture_path):
+                texture_path = os.path.join(FOLDER_PATH, "Textures", "Default", texture)
+                if not os.path.exists(texture_path):
+                    print(f"Must have texture: '{texture_path}, doesn't exists!'")
+                    return FAILED
+            
+            self.textures[texture] = pygame.image.load(texture_path)
 
-    return True
+        return True
+    
+    def display(self):
+        pass
 
-def game_display():
-    pass
+    def inputs(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return False
 
-def game_inputs():
-    pass
+    def loop(self):
+        while game.inputs():
+            game.display()
+            # TODO update notes
+            py_clock.tick(FPS)
 
-def game_loop():
-    pass
+        main.loop()
 
-def main_display():
-    pass
+class Main:
+    def __init__(self):
+        self.is_failed = False
+        if not self.load_textures():
+            self.is_failed = True
+            return
+        
+        self.loop()
 
-def main_inputs():
-    pass
+    def load_textures():
+        pass # just copy and paste the other one
 
-def main_loop():
-    game_loop()
+    def display():
+        pass
 
-load_textures()
-main_loop()
+    def inputs():
+        pass
+
+    def loop():
+        game.loop()
+
+main = Main()
+if main.is_failed:
+    pygame.quit()
+    exit()    
+game = Gameplay()
+if game.is_failed:
+    pygame.quit()
+    exit()
 pygame.quit()
