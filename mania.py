@@ -58,6 +58,25 @@ def set_default_placements():
 
 set_default_placements()
 
+def offset_skin_placements():
+    global SKIN_PLACEMENTS
+
+    x_multiply_by = WINDOW_W / 1000
+    y_multiply_by = WINDOW_H / 1000
+
+    for key in SKIN_PLACEMENTS:
+        if SKIN_PLACEMENTS[key] < 0 or SKIN_PLACEMENTS[key] > 1000:
+            print(f"The '{key}' at the current skin config is out of range (0, 1000): '{SKIN_PLACEMENTS[key]}")
+            return FAILED
+        
+        key_last_word = key.split("_")[-1]
+        if key_last_word == "width" or key_last_word == "x":
+            SKIN_PLACEMENTS[key] = SKIN_PLACEMENTS[key] * x_multiply_by
+        elif key_last_word == "height" or key_last_word == "y":
+            SKIN_PLACEMENTS[key] = SKIN_PLACEMENTS[key] * y_multiply_by
+        else:
+            print(f"The key ({key}): doesn't follow a rule (last seperated word must be width, height or x, y)!")
+
 def init_skin_config(path:str):
     if not os.path.exists(path):
         print(f"Skin config file doesn't exists: '{path}'")
@@ -84,7 +103,7 @@ def init_skin_config(path:str):
         SKIN_PLACEMENTS["4K_note_space"] = config_parser["Placement"].getint("4K_note_space",
                                                                               fallback=SKIN_PLACEMENTS["4K_note_space"])
 
-    return True
+    return offset_skin_placements()
         
 if init_main_config(MAIN_CONFIG_PATH) == FAILED:
     exit()
@@ -100,6 +119,8 @@ class Gameplay:
         if not self.load_textures():
             self.is_failed = True
             return
+        
+        self.rectangles = dict()
 
     def load_textures(self):
         global TEXTURE_PACK
