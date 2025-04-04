@@ -181,7 +181,7 @@ class Main:
         self.window = pygame.display.set_mode((WINDOW_W, WINDOW_H), IS_FULLSCREEN)
 
     def load_textures(self):
-        return True # just copy and paste the other one
+        return True # just copy and paste the other one???
 
     def display(self):
         pass
