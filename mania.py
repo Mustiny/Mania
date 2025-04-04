@@ -17,7 +17,9 @@ FAILED = False
 
 FOLDER_PATH = os.path.dirname(os.path.abspath(__name__))
 MAIN_CONFIG_PATH = os.path.join(FOLDER_PATH, "config.ini")
-
+MAPS_PATH = os.path.join(FOLDER_PATH, "Maps")
+TEXTURES_PATH = os.path.join(FOLDER_PATH, "Textures")
+START_MAP = os.path.join(MAPS_PATH, "This will be the day")
 
 config_parser = configparser.ConfigParser()
 def init_main_config(path:str):
@@ -54,7 +56,7 @@ def set_default_placements():
     SKIN_PLACEMENTS["4K_end_pos_y"] = 700
     SKIN_PLACEMENTS["4K_note_width"] = 100
     SKIN_PLACEMENTS["4K_note_height"] = 70
-    SKIN_PLACEMENTS["4K_note_space"] = 50
+    SKIN_PLACEMENTS["4K_note_space_x"] = 50
 
 set_default_placements()
 
@@ -76,6 +78,8 @@ def offset_skin_placements():
             SKIN_PLACEMENTS[key] = SKIN_PLACEMENTS[key] * y_multiply_by
         else:
             print(f"The key ({key}): doesn't follow a rule (last seperated word must be width, height or x, y)!")
+    
+    return True
 
 def init_skin_config(path:str):
     if not os.path.exists(path):
@@ -100,8 +104,8 @@ def init_skin_config(path:str):
                                                                               fallback=SKIN_PLACEMENTS["4K_note_width"])
         SKIN_PLACEMENTS["4K_note_height"] = config_parser["Placement"].getint("4K_note_height",
                                                                               fallback=SKIN_PLACEMENTS["4K_note_height"])
-        SKIN_PLACEMENTS["4K_note_space"] = config_parser["Placement"].getint("4K_note_space",
-                                                                              fallback=SKIN_PLACEMENTS["4K_note_space"])
+        SKIN_PLACEMENTS["4K_note_space_x"] = config_parser["Placement"].getint("4K_note_space_x",
+                                                                              fallback=SKIN_PLACEMENTS["4K_note_space_x"])
 
     return offset_skin_placements()
         
@@ -109,6 +113,7 @@ if init_main_config(MAIN_CONFIG_PATH) == FAILED:
     exit()
     
 pygame.init()
+pygame.mixer.init()
 py_clock = pygame.time.Clock()
 
 
@@ -121,14 +126,15 @@ class Gameplay:
             return
         
         self.rectangles = dict()
+        self.current_map = os.path.join(FOLDER_PATH)
 
     def load_textures(self):
         global TEXTURE_PACK
-        textures_path = os.path.join(FOLDER_PATH, "Textures", TEXTURE_PACK)
+        textures_path = os.path.join(TEXTURES_PATH, TEXTURE_PACK)
         if not os.path.exists(textures_path):
             print(f"Texture pack folder: {textures_path}', doesn't exists!")
             TEXTURE_PACK = "Default"
-            if not os.path.exists(os.path.join(FOLDER_PATH, "Textures", TEXTURE_PACK)):
+            if not os.path.exists(os.path.join(TEXTURES_PATH, TEXTURE_PACK)):
                 print(f"Default texture pack folder doesn't exists!")
                 return FAILED
         
@@ -136,7 +142,7 @@ class Gameplay:
         for texture in textures_list:
             texture_path = os.path.join(textures_path, f"{texture}.png")
             if not os.path.exists(texture_path):
-                texture_path = os.path.join(FOLDER_PATH, "Textures", "Default", texture)
+                texture_path = os.path.join(TEXTURES_PATH, "Default", texture)
                 if not os.path.exists(texture_path):
                     print(f"Must have texture: '{texture_path}, doesn't exists!'")
                     return FAILED
@@ -174,10 +180,11 @@ class Main:
             self.is_failed = True
             return
         
-        if not init_skin_config(os.path.join(FOLDER_PATH, "Textures", TEXTURE_PACK, "config.ini")):
+        if not init_skin_config(os.path.join(TEXTURES_PATH, TEXTURE_PACK, "config.ini")):
             self.is_failed = True
             return
         
+        self.on_other_scene = False
         self.window = pygame.display.set_mode((WINDOW_W, WINDOW_H), IS_FULLSCREEN)
 
     def load_textures(self):
@@ -187,11 +194,29 @@ class Main:
         pass
 
     def inputs(self):
-        pass
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.mixer_music.stop()
+                    return False
+                if event.key == pygame.K_1:
+                    pygame.mixer_music.load(os.path.join(START_MAP, "music.mp3"))
+                    pygame.mixer_music.play()
+                if event.key == pygame.K_4:
+                    self.on_other_scene = True
+                    game.loop()
+
+        return True
 
     def loop(self):
-        game.loop()
-
+        while self.inputs():
+            if self.on_other_scene:
+                self.on_other_scene = False
+                continue # stay same or restart?
+            self.display()
+            py_clock.tick(FPS)
 
 main = Main()
 if main.is_failed:
